@@ -13,6 +13,29 @@ Target: a working, demo-ready system in **2 focused days**, with optional stretc
 
 **Out of scope (on purpose):** real ERP connectors, auth/multi-tenancy, a web UI, vector search/RAG, fine-tuning. Each is real work that would not strengthen the core story. RAG is optional (see Stretch).
 
+## 0.5 Zero-cost mode (hard constraint)
+
+Target: **$0 to build, test, and demo.** Everything is open source or has a free tier, and the architecture is shaped so free-tier limits cannot break it.
+
+| Component | Free option | Caveat |
+|---|---|---|
+| Runtime, TypeScript, SQLite, Zod, Vitest | Open source | none |
+| Agent layer | Vercel AI SDK (open source); Mastra for the stretch port | none |
+| Model | Gemini API free tier via a Google AI Studio key (`@ai-sdk/google`), using Flash / Flash-Lite models | Pro models are paid-only; limits are per model and project and have changed several times in 2026, so read your AI Studio dashboard; free-tier content may be used by Google to improve its products |
+| Tracing | Langfuse Cloud Hobby (50k units/month, 30-day retention, 2 users), or self-host with Docker, or Arize Phoenix locally | Hobby units can run out if you trace every eval call |
+| Queue (stretch) | Redis in local Docker | none |
+| Hosting | None; the demo runs locally and is recorded as a video/GIF | none |
+
+**Rules that keep it at $0:**
+
+1. **Never attach billing** to the Google project the key belongs to. As I understand Google's tier model, the free tier simply returns `429` when exhausted instead of charging you. Confirm Gemini API availability for your region when you create the key.
+2. **Throttle by default.** Concurrency 1, a minimum delay between calls, and exponential backoff on `429` / `RESOURCE_EXHAUSTED`. Put this in one `callModel` wrapper so every agent inherits it.
+3. **Record and replay for evals.** `npm run eval -- --live` calls the real model and saves each response to `evals/fixtures/`. A plain `npm run eval` replays fixtures with zero API calls. Iterating on scorers, policy rules, and the executor never touches your quota. This is also good engineering practice, so mention it in interviews.
+4. **Budget the calls.** Step cap of about 8 per agent, at most about 30 eval cases, and live runs only at milestones. Rough estimate: 30 cases x 4 to 8 model calls is on the order of 120 to 240 calls per full live run, which fits a daily free quota if you run it once or twice a day. Verify against your dashboard.
+5. **Mock data only.** Since free-tier inputs may be used by the provider, never put real company data in prompts. The seed data is synthetic anyway.
+6. **Trace selectively.** Trace demo runs and a few debug runs. Disable or sample tracing during full eval runs, or point those at local Phoenix.
+7. **Fallback model.** If you hit the daily limit, develop the loop against a small local model via Ollama (free, needs RAM, and tool-calling is less reliable on small models). Produce your final reported eval numbers on the Gemini free tier.
+
 ## 1. Design principles
 
 1. **LLM proposes, code disposes.** No agent has a tool that mutates ERP tables.
@@ -230,7 +253,7 @@ AI SDK 7's `WorkflowAgent` is designed around Vercel Workflows, which conflicts 
 
 ### ADR-5: Model choice
 
-Make the model an env var (`MODEL_ID`) behind one `getModel()` function. Use a small, cheap model for development and evals, and compare one larger model once for the README table. Record cost per run either way.
+Make the model an env var (`MODEL_ID`) behind one `getModel()` function. Use a free-tier Flash-Lite model for development and a free-tier Flash model for the reported eval run; compare the two in the README table (both cost $0). Record token usage per run either way, and show what the same run would cost at paid rates, which demonstrates cost awareness without spending anything.
 
 ## 10. Stretch phases (only after Definition of Done)
 

@@ -54,6 +54,10 @@ LedgerGuard reconciles purchase orders, goods receipts, and invoices (the classi
 - **Testing / evals:** Vitest, with a mock model for deterministic tests and a seeded eval dataset for real-model runs
 - **Optional:** BullMQ worker (stretch), Mastra port (stretch), MCP server for read-only ERP tools (stretch)
 
+## Cost: $0
+
+The whole project runs on free tiers and open source: Gemini API free tier (Flash models), Langfuse Hobby or self-hosted, SQLite, and local Docker. Evals use **record/replay** so re-running them costs no API calls, and every model call goes through a throttled wrapper with backoff. See ROADMAP.md section 0.5 for the rules.
+
 ## Quick start
 
 ```bash
@@ -134,6 +138,7 @@ ledgerguard/
 │   ├── dataset.json          ground truth + adversarial cases
 │   ├── run.ts                npm run eval
 │   ├── scorers.ts
+│   ├── fixtures/             recorded model responses for zero-cost replay
 │   └── results/              timestamped scorecards (git-ignored)
 │
 └── tests/                    deterministic, no API calls
