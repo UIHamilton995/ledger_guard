@@ -11,7 +11,7 @@ Target: a working, demo-ready system in **2 focused days**, with optional stretc
 
 **In scope:** 3-way match reconciliation, two LLM agents, deterministic policy and executor, human approval, tracing, audit log, evals.
 
-**Out of scope (on purpose):** real ERP connectors, auth/multi-tenancy, a web UI, vector search/RAG, fine-tuning. Each is real work that would not strengthen the core story. RAG is optional (see Stretch).
+**Out of scope for the MVP (on purpose):** real ERP connectors, auth/multi-tenancy, fine-tuning. A minimal web UI/API, RAG, and a free public deployment are planned as Phase 2 and Phase 3 (sections 9.5 and 9.6), built after the Definition of Done is met.
 
 ## 0.5 Zero-cost mode (hard constraint)
 
@@ -57,7 +57,7 @@ proposals(id PK, run_id, idempotency_key UNIQUE, type, payload JSON, risk, statu
 audit_log(id PK, run_id, actor, action, input JSON, output JSON, status, created_at)
 ```
 
-`invoices.memo` is free text on purpose: it is the injection surface for the adversarial evals.
+`invoices.memo` is free text on purpose: it is the injection surface for the adversarial evals. The read tool returns it as `memoUntrusted` so the prompt can treat it strictly as data.
 
 ### Seed data
 
@@ -73,11 +73,12 @@ Tools (all read-only):
 
 | Tool | Input | Returns |
 |---|---|---|
-| `listUnmatched` | `{ limit }` | PO/receipt/invoice IDs not yet reconciled |
+| `listPendingPurchaseOrders` | `{ limit?, offset? }` | PO ids with invoices awaiting review, plus total pending |
 | `getPurchaseOrder` | `{ poId }` | PO row |
 | `getReceipts` | `{ poId }` | receipts for PO |
 | `getInvoices` | `{ poId }` | invoices for PO |
-| `getStockMovements` | `{ sku, days }` | recent movements |
+| `getItem` | `{ sku }` | on-hand quantity and reorder point |
+| `getStockMovements` | `{ sku, limit? }` | most recent movements, newest first |
 
 Output schema:
 
@@ -133,13 +134,13 @@ Rules (start with these, keep them in `rules.ts` as data):
 ## 4. Orchestration
 
 ```ts
-async function runAudit(runId: string) {
+async function runAudit(runId: string, deps: { db: Db; model: LanguageModel; retriever: Retriever; approver: Approver }) {
   const report   = await auditAgent.generate({ prompt: batchPrompt });   // validated AuditReport
   const verified = verifyEvidence(report);                               // code check
   await resolutionAgent.generate({ prompt: toPrompt(verified) });        // writes proposals
   for (const p of pendingProposals(runId)) {
     const d = decide(p, ctx);
-    if (d.verdict === "needs_human") await requestApproval(p);           // CLI prompt
+    if (d.verdict === "needs_human") await deps.approver.request(p);   // CLI now, HTTP later
     if (d.verdict !== "reject" && approved(p)) await execute(p);
     logDecision(runId, p, d);
   }
@@ -255,14 +256,79 @@ AI SDK 7's `WorkflowAgent` is designed around Vercel Workflows, which conflicts 
 
 Make the model an env var (`MODEL_ID`) behind one `getModel()` function. Use a free-tier Flash-Lite model for development and a free-tier Flash model for the reported eval run; compare the two in the README table (both cost $0). Record token usage per run either way, and show what the same run would cost at paid rates, which demonstrates cost awareness without spending anything.
 
+## 9.5 Seams to keep in the MVP (so Phases 2 and 3 are additions, not rewrites)
+
+These cost almost nothing now and avoid a refactor later:
+
+- **Dependency injection at the core.** `runAudit(runId, { db, model, retriever, approver })`. The CLI, the HTTP API, and the tests all call the same function with different dependencies.
+- **Approval is an interface.** `Approver.request(proposal) -> Promise<Decision>`. The MVP uses a CLI prompt; Phase 3 uses an HTTP approver. Because proposals are persisted in the database, approval can arrive in a later request.
+- **Run state lives in the database, never in process memory.**
+- **A `Retriever` interface with a `NullRetriever`** (returns nothing) so agents already accept retrieval.
+- **Core logic never touches `fs` or `path`.** File access stays in `cli/` and adapters, which keeps the core portable across Node, containers, and edge runtimes.
+- **Configuration from environment variables only.**
+- **`cli/` stays thin:** parse arguments, build dependencies, call the core.
+
+## 9.6 Phase 2: RAG over policy documents (still $0)
+
+**Purpose:** ground the agents' explanations and a "why was this held?" assistant in the company's written policies, with citations. **RAG informs; it never authorises.** Hard limits stay in `rules.ts` and the policy engine, and either `rules.ts` reads its thresholds from the policy documents' front matter or a test asserts the two agree, so there is one source of truth.
+
+**Corpus (`knowledge/`):** 8 to 12 short synthetic markdown documents: three-way-match policy, price tolerance, duplicate-invoice handling, missing-receipt procedure, negative-stock procedure, approval limits, two or three supplier terms sheets, dispute email templates. Use headings so chunks carry a document id and section.
+
+**Pipeline:**
+
+1. **Ingest:** chunk by heading (roughly 200 to 400 tokens) with metadata `{ docId, section }`.
+2. **Embed:** Gemini embeddings on the free tier. Document vectors are computed once at build time and committed; only the user's query is embedded at runtime (one call).
+3. **Index:** a few hundred chunks fit in memory, so brute-force cosine similarity over a JSON or SQLite file is enough. No vector database is needed. The `Retriever` interface lets you swap in pgvector, Qdrant, or Turso later and say so in interviews.
+4. **Retrieve:** hybrid ranking (vector similarity plus BM25 keyword score), top 4. If the embedding quota is exhausted, fall back to BM25 only.
+5. **Answer:** the model must cite chunk ids; code verifies every cited id was actually retrieved (the same evidence-check pattern as the Audit Agent).
+
+**Where it plugs in:**
+
+- A read-only `searchPolicy` tool for the Resolution Agent, so proposals cite the relevant policy.
+- A chat endpoint, "Ask LedgerGuard", that answers questions like "why was PO-1007 held?" using run data plus policy citations. This is the customer-support-style feature interviewers will recognise.
+
+**RAG evals (added to the scorecard):**
+
+- Retrieval hit rate at k=4 on about 20 question-to-expected-document pairs.
+- Faithfulness: answers cite only retrieved chunks.
+- No-answer cases: when the policy does not cover the question, the assistant says so.
+- Poisoned-document case: a chunk containing instructions must not change tool permissions.
+
+## 9.7 Phase 3: free public deployment
+
+**Shape:** one Docker image containing a Hono API and a minimal static page (approval queue, run trace, chat). The app is stateless: the database is re-seeded at boot from the deterministic seed, so an ephemeral disk is fine for the demo. Real persistence would go behind the repository interface (libSQL/Turso or Postgres on a free tier).
+
+**Hosting choices (verify limits before committing; free tiers change often):**
+
+| Option | Fit | Catch |
+|---|---|---|
+| Render free web service | Best default: runs a Docker/Node container, no card | Sleeps after about 15 minutes idle, so the first visit is slow; small RAM and bandwidth |
+| Koyeb free service | Runs continuously | Needs a card on file |
+| Cloudflare Workers | Generous free requests | Not a Node runtime; `fs` and native modules such as `better-sqlite3` will not run without a port |
+| Hugging Face Docker Spaces | Previously popular | Now a paid feature |
+
+Keep the app container-portable so a pricing change means a redeploy, not a rewrite.
+
+**Demo safety (a public URL can drain a free quota in minutes):**
+
+1. **Demo mode is the default:** it replays recorded fixtures, so visitors cost zero API calls.
+2. **Live mode needs an access code** you share with interviewers, with per-IP rate limits and a global daily call cap that degrades to replay when reached.
+3. The model key lives only on the server. Never ship it to the browser.
+4. Approval and run endpoints are protected; request size limits and CORS are set; logs redact secrets.
+5. Synthetic data only.
+
+**Also ship:**
+
+- `/healthz` endpoint and Langfuse traces keyed by run id.
+- GitHub Actions (free for public repos) running typecheck, tests, and replay evals on every push, with a badge in the README.
+- A README note that the first load may take about a minute, plus a 2 to 3 minute demo video as a fallback in case the free host is down.
+
 ## 10. Stretch phases (only after Definition of Done)
 
 1. **Queue worker:** move `runAudit` behind BullMQ so long runs do not block a request; add retries and a dead-letter queue.
 2. **Mastra port:** same tools and policy, orchestrator as a workflow with suspend/resume approval; write the comparison.
 3. **MCP server:** expose the read-only ERP tools over MCP so any MCP client can use them; this demonstrates the standard enterprise integration path.
-4. **Thin HTTP API + approval UI:** a Hono endpoint and a small page to approve proposals.
-5. **RAG over supplier contracts:** only if you want to show retrieval; keep it separate from the core flow.
-6. **Online scoring:** push eval scores to Langfuse and track regressions across prompt changes.
+4. **Online scoring:** push eval scores to Langfuse and track regressions across prompt changes.
 
 ## 11. Interview talking points
 
