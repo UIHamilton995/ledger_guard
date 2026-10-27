@@ -1,19 +1,46 @@
 {
   "name": "ledgerguard",
   "version": "0.1.0",
-  "private": true,
   "description": "Guardrailed, observable multi-agent audit system for a mock ERP",
+  "author": "",
+  "private": true,
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "db:seed": "tsx src/cli/seed.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"{src,tests,evals}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,tests,evals}/**/*.ts\" --fix",
+    "format": "prettier --write \"{src,tests,evals}/**/*.ts\" \"*.ts\"",
+    "format:check": "prettier --check \"{src,tests,evals}/**/*.ts\" \"*.ts\"",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
+    "check": "npm run typecheck && npm run lint && npm run test"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "latest",
+    "@ai-sdk/openai-compatible": "latest",
+    "ai": "^7.0.0",
+    "better-sqlite3": "^12.0.0",
+    "dotenv": "^17.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
-    "typescript": "^7.0.2"
+    "@eslint/js": "^9.18.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.12.4",
+    "@vitest/coverage-v8": "^4.0.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "globals": "^17.0.0",
+    "prettier": "^3.8.3",
+    "tsx": "^4.20.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0",
+    "vitest": "^4.0.0"
   }
 }

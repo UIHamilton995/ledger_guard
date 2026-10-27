@@ -1,7 +1,7 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { applySchema, openDb } from "../domain/db";
-import { seedDatabase } from "../domain/seed";
+import { seedDatabase } from "../domain/";
 
 const SEED = 42
 const dbPath = process.env.DB_PATH ?? "data/ledgerguard.db";
