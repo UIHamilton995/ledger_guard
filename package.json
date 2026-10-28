@@ -11,6 +11,10 @@
   },
   "scripts": {
     "db:seed": "tsx src/cli/seed.ts",
+    "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\"",
+    "copy:assets": "node --input-type=module -e \"import { cpSync } from 'node:fs'; cpSync('src/domain/schema.sql', 'dist/domain/schema.sql')\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json && npm run copy:assets",
+    "db:seed:built": "node dist/cli/seed.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"{src,tests,evals}/**/*.ts\"",
     "lint:fix": "eslint \"{src,tests,evals}/**/*.ts\" --fix",
