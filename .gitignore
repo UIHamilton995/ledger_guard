@@ -6,9 +6,11 @@ dist/
 build/
 out/
 
-# Environment variables and secrets
+# Block all environment files
 .env
 .env.*
+
+# Allow only the example template
 !.env.example
 
 # Logs
