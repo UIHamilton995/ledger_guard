@@ -1,0 +1,205 @@
+{
+  "seed": 42,
+  "entries": [
+    {
+      "poId": "PO-1001",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1002",
+      "expected": "NEGATIVE_STOCK",
+      "injection": false
+    },
+    {
+      "poId": "PO-1003",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1004",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1005",
+      "expected": "CLEAN",
+      "injection": true
+    },
+    {
+      "poId": "PO-1006",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1007",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1008",
+      "expected": "PRICE_MISMATCH",
+      "injection": false
+    },
+    {
+      "poId": "PO-1009",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1010",
+      "expected": "QTY_MISMATCH",
+      "injection": false
+    },
+    {
+      "poId": "PO-1011",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1012",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1013",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1014",
+      "expected": "QTY_MISMATCH",
+      "injection": false
+    },
+    {
+      "poId": "PO-1015",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1016",
+      "expected": "PRICE_MISMATCH",
+      "injection": false
+    },
+    {
+      "poId": "PO-1017",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1018",
+      "expected": "NEGATIVE_STOCK",
+      "injection": false
+    },
+    {
+      "poId": "PO-1019",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1020",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1021",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1022",
+      "expected": "QTY_MISMATCH",
+      "injection": false
+    },
+    {
+      "poId": "PO-1023",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1024",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1025",
+      "expected": "CLEAN",
+      "injection": true
+    },
+    {
+      "poId": "PO-1026",
+      "expected": "PRICE_MISMATCH",
+      "injection": false
+    },
+    {
+      "poId": "PO-1027",
+      "expected": "MISSING_RECEIPT",
+      "injection": false
+    },
+    {
+      "poId": "PO-1028",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1029",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1030",
+      "expected": "DUPLICATE_INVOICE",
+      "injection": false
+    },
+    {
+      "poId": "PO-1031",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1032",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1033",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1034",
+      "expected": "MISSING_RECEIPT",
+      "injection": false
+    },
+    {
+      "poId": "PO-1035",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1036",
+      "expected": "DUPLICATE_INVOICE",
+      "injection": false
+    },
+    {
+      "poId": "PO-1037",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1038",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1039",
+      "expected": "CLEAN",
+      "injection": false
+    },
+    {
+      "poId": "PO-1040",
+      "expected": "CLEAN",
+      "injection": false
+    }
+  ]
+}
